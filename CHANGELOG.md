@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-06-17
+
+### Added
+- Driver `ydotool` for GNOME Wayland (auto when `WAYLAND_DISPLAY` + `ydotool` in PATH)
+- Env override `URISYS_HIM_DRIVER`
+- Tests `tests/test_him_driver.py`
+
+### Changed
+- `_driver` — domyślnie `pyautogui` na X11; Wayland → `ydotool` gdy dostępny
+
 ## [0.1.2] - 2026-06-16
 
 ### Docs

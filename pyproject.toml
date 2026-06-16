@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "urihim"
-version = "0.1.2"
+version = "0.1.3"
 description = "him:// URI capability pack for urisys-node"
 readme = "README.md"
 requires-python = ">=3.10"
