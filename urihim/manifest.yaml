@@ -1,0 +1,43 @@
+id: urihim
+version: 1
+scheme: him
+description: Human input mock (mouse/keyboard) for urisys-node.
+uri_patterns:
+  - pattern: him://{host}/mouse/query/status
+    kind: query
+    operation: him.mouse.status
+    side_effects: false
+    approval: not_required
+  - pattern: him://{host}/mouse/command/move
+    kind: command
+    operation: him.mouse.move
+    side_effects: true
+    approval: required
+  - pattern: him://{host}/mouse/command/click
+    kind: command
+    operation: him.mouse.click
+    side_effects: true
+    approval: required
+  - pattern: him://{host}/mouse/command/scroll
+    kind: command
+    operation: him.mouse.scroll
+    side_effects: true
+    approval: required
+  - pattern: him://{host}/keyboard/command/type
+    kind: command
+    operation: him.keyboard.type
+    side_effects: true
+    approval: required
+  - pattern: him://{host}/keyboard/command/hotkey
+    kind: command
+    operation: him.keyboard.hotkey
+    side_effects: true
+    approval: required
+handlers:
+  python:
+    him.mouse.status: python://urihim.handlers:mouse_status
+    him.mouse.move: python://urihim.handlers:mouse_move
+    him.mouse.click: python://urihim.handlers:mouse_click
+    him.mouse.scroll: python://urihim.handlers:mouse_scroll
+    him.keyboard.type: python://urihim.handlers:keyboard_type
+    him.keyboard.hotkey: python://urihim.handlers:keyboard_hotkey
