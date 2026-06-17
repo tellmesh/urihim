@@ -30,7 +30,16 @@ def test_driver_x11_defaults_pyautogui():
     ctx = {'allow_real': True}
     env = {k: v for k, v in os.environ.items() if k != 'WAYLAND_DISPLAY' and k != 'URISYS_HIM_DRIVER'}
     with mock.patch.dict(os.environ, env, clear=True):
-        assert him._driver(ctx) == 'pyautogui'
+        with mock.patch.object(him, '_xdotool_available', return_value=False):
+            assert him._driver(ctx) == 'pyautogui'
+
+
+def test_driver_x11_prefers_xdotool():
+    ctx = {'allow_real': True}
+    with mock.patch.dict(os.environ, {'DISPLAY': ':99'}, clear=False):
+        with mock.patch.object(him, '_wayland_session', return_value=False):
+            with mock.patch.object(him, '_xdotool_available', return_value=True):
+                assert him._driver(ctx) == 'xdotool'
 
 
 def test_ydotool_key_sequence_ctrl_enter():

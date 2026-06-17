@@ -22,6 +22,10 @@ def _ydotool_available() -> bool:
     return shutil.which('ydotool') is not None
 
 
+def _xdotool_available() -> bool:
+    return shutil.which('xdotool') is not None and bool(os.environ.get('DISPLAY'))
+
+
 def _driver(context):
     configured = context.get('config', {}).get('him', {}).get('driver')
     if configured:
@@ -33,6 +37,8 @@ def _driver(context):
         return 'mock'
     if _wayland_session() and _ydotool_available():
         return 'ydotool'
+    if _xdotool_available():
+        return 'xdotool'
     return 'pyautogui'
 
 
@@ -62,6 +68,10 @@ _YDOTOOL_KEY = {
     'alt': 56,
     'super': 125,
     'meta': 125,
+    'page_down': 109,
+    'pagedown': 109,
+    'page_up': 104,
+    'pageup': 104,
 }
 
 
@@ -71,6 +81,22 @@ def _run_ydotool(context, *args: str) -> None:
     if not _ydotool_available():
         raise RuntimeError('real HIM on Wayland requires: apt install ydotool (+ ydotoold)')
     subprocess.run(['ydotool', *args], check=True, capture_output=True, text=True)
+
+
+def _run_xdotool(context, *args: str) -> None:
+    if not _real_allowed(context):
+        raise PermissionError('real HIM control requires context.allow_real=true or URISYS_ALLOW_REAL=1')
+    if not _xdotool_available():
+        raise RuntimeError('real HIM on X11 requires: apt install xdotool and DISPLAY')
+    env = os.environ.copy()
+    display = context.get('display') or env.get('DISPLAY')
+    if display:
+        env['DISPLAY'] = str(display)
+    subprocess.run(['xdotool', *args], check=True, capture_output=True, text=True, env=env)
+
+
+_XDOTOOL_BUTTON = {'left': '1', 'middle': '2', 'right': '3'}
+_XDOTOOL_SCROLL = {'up': '4', 'down': '5'}
 
 
 def _ydotool_key_sequence(keys: list[str]) -> list[str]:
@@ -115,6 +141,10 @@ def mouse_move(payload, context):
         if context.get('dry_run'):
             return {'dry_run': True, 'x': x, 'y': y, 'driver': driver}
         _run_ydotool(context, 'mousemove', '--absolute', str(x), str(y))
+    elif driver == 'xdotool':
+        if context.get('dry_run'):
+            return {'dry_run': True, 'x': x, 'y': y, 'driver': driver}
+        _run_xdotool(context, 'mousemove', '--sync', str(x), str(y))
     st = _state(context)
     st['mouse'].update({'x': x, 'y': y})
     return {'x': x, 'y': y, 'driver': driver}
@@ -142,6 +172,14 @@ def mouse_click(payload, context):
         code = _YDOTOOL_BUTTON.get(button, _YDOTOOL_BUTTON['left'])
         for _ in range(clicks):
             _run_ydotool(context, 'click', code)
+    elif driver == 'xdotool':
+        if context.get('dry_run'):
+            return {'dry_run': True, 'x': x, 'y': y, 'button': button, 'clicks': clicks, 'driver': driver}
+        if x is not None and y is not None:
+            _run_xdotool(context, 'mousemove', '--sync', str(int(x)), str(int(y)))
+        btn = _XDOTOOL_BUTTON.get(button, _XDOTOOL_BUTTON['left'])
+        for _ in range(clicks):
+            _run_xdotool(context, 'click', btn)
     st = _state(context)
     if x is not None and y is not None:
         st['mouse'].update({'x': int(x), 'y': int(y)})
@@ -159,8 +197,47 @@ def keyboard_type(payload, context):
         if context.get('dry_run'):
             return {'dry_run': True, 'text': text, 'driver': driver}
         _run_ydotool(context, 'type', text)
+    elif driver == 'xdotool':
+        if context.get('dry_run'):
+            return {'dry_run': True, 'text': text, 'driver': driver}
+        _run_xdotool(context, 'type', '--delay', '12', '--', text)
     _state(context)['keys'].append({'type': 'text', 'text': text})
     return {'typed': text, 'chars': len(text), 'driver': driver}
+
+
+def mouse_scroll(payload, context):
+    amount = int(payload.get('amount', payload.get('clicks', -3)))
+    x = payload.get('x')
+    y = payload.get('y')
+    driver = _driver(context)
+    if driver == 'pyautogui':
+        if context.get('dry_run'):
+            return {'dry_run': True, 'amount': amount, 'x': x, 'y': y}
+        pg = _pyautogui(context)
+        if x is not None and y is not None:
+            pg.moveTo(int(x), int(y))
+        pg.scroll(amount)
+    elif driver == 'ydotool':
+        if context.get('dry_run'):
+            return {'dry_run': True, 'amount': amount, 'x': x, 'y': y, 'driver': driver}
+        if x is not None and y is not None:
+            _run_ydotool(context, 'mousemove', '--absolute', str(int(x)), str(int(y)))
+        key = 'page_down' if amount < 0 else 'page_up'
+        steps = max(1, abs(amount) // 3)
+        for _ in range(steps):
+            _run_ydotool(context, 'key', *_ydotool_key_sequence([key]))
+    elif driver == 'xdotool':
+        if context.get('dry_run'):
+            return {'dry_run': True, 'amount': amount, 'x': x, 'y': y, 'driver': driver}
+        if x is not None and y is not None:
+            _run_xdotool(context, 'mousemove', '--sync', str(int(x)), str(int(y)))
+        btn = _XDOTOOL_SCROLL['down' if amount < 0 else 'up']
+        repeats = max(1, abs(amount))
+        _run_xdotool(context, 'click', '--repeat', str(repeats), btn)
+    st = _state(context)
+    if x is not None and y is not None:
+        st['mouse'].update({'x': int(x), 'y': int(y)})
+    return {'scrolled': True, 'amount': amount, 'x': st['mouse']['x'], 'y': st['mouse']['y'], 'driver': driver}
 
 
 def keyboard_hotkey(payload, context):
@@ -177,5 +254,10 @@ def keyboard_hotkey(payload, context):
             return {'dry_run': True, 'keys': keys, 'driver': driver}
         seq = _ydotool_key_sequence(keys)
         _run_ydotool(context, 'key', *seq)
+    elif driver == 'xdotool':
+        if context.get('dry_run'):
+            return {'dry_run': True, 'keys': keys, 'driver': driver}
+        combo = '+'.join(k.strip().lower().replace('control', 'ctrl') for k in keys if k.strip())
+        _run_xdotool(context, 'key', combo)
     _state(context)['keys'].append({'type': 'hotkey', 'keys': keys})
     return {'hotkey': keys, 'driver': driver}
