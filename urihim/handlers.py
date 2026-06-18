@@ -261,3 +261,12 @@ def keyboard_hotkey(payload, context):
         _run_xdotool(context, 'key', combo)
     _state(context)['keys'].append({'type': 'hotkey', 'keys': keys})
     return {'hotkey': keys, 'driver': driver}
+
+
+def keyboard_key(payload, context):
+    key = payload.get('key') or payload.get('keys')
+    if isinstance(key, list):
+        key = key[0] if key else ''
+    if not key:
+        raise ValueError('keyboard key requires payload.key')
+    return keyboard_hotkey({'keys': [str(key)]}, context)

@@ -51,11 +51,25 @@ capabilities:
   handler: python://urihim.handlers:keyboard_type
   side_effects: true
   approval: required
+- id: him-keyboard-type_text
+  uri: him://{host}/keyboard/command/type-text
+  kind: command
+  operation: him.keyboard.type_text
+  handler: python://urihim.handlers:keyboard_type
+  side_effects: true
+  approval: required
 - id: him-keyboard-hotkey
   uri: him://{host}/keyboard/command/hotkey
   kind: command
   operation: him.keyboard.hotkey
   handler: python://urihim.handlers:keyboard_hotkey
+  side_effects: true
+  approval: required
+- id: him-keyboard-key
+  uri: him://{host}/keyboard/command/key
+  kind: command
+  operation: him.keyboard.key
+  handler: python://urihim.handlers:keyboard_key
   side_effects: true
   approval: required
 policy:

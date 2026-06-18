@@ -28,9 +28,19 @@ uri_patterns:
     operation: him.keyboard.type
     side_effects: true
     approval: required
+  - pattern: him://{host}/keyboard/command/type-text
+    kind: command
+    operation: him.keyboard.type_text
+    side_effects: true
+    approval: required
   - pattern: him://{host}/keyboard/command/hotkey
     kind: command
     operation: him.keyboard.hotkey
+    side_effects: true
+    approval: required
+  - pattern: him://{host}/keyboard/command/key
+    kind: command
+    operation: him.keyboard.key
     side_effects: true
     approval: required
 handlers:
@@ -40,4 +50,6 @@ handlers:
     him.mouse.click: python://urihim.handlers:mouse_click
     him.mouse.scroll: python://urihim.handlers:mouse_scroll
     him.keyboard.type: python://urihim.handlers:keyboard_type
+    him.keyboard.type_text: python://urihim.handlers:keyboard_type
     him.keyboard.hotkey: python://urihim.handlers:keyboard_hotkey
+    him.keyboard.key: python://urihim.handlers:keyboard_key
